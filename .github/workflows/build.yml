@@ -50,7 +50,7 @@ jobs:
           tool: tauri-cli@2
 
       - name: Build app
-        uses: tauri-apps/tauri-action@v1
+        uses: tauri-apps/tauri-action@action-v0.6.2
         with:
           projectPath: src-tauri
           tauriScript: cargo tauri
