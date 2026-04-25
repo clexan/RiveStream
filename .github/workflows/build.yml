@@ -1,15 +1,9 @@
-name: Build desktop apps
+name: Release desktop apps
 
 on:
   push:
-    branches:
-      - "**"
     tags:
       - "v*"
-  pull_request:
-  release:
-    types:
-      - published
   workflow_dispatch:
 
 jobs:
@@ -17,6 +11,7 @@ jobs:
     name: Build ${{ matrix.name }}
     permissions:
       contents: write
+
     strategy:
       fail-fast: false
       matrix:
@@ -37,10 +32,14 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Debug context
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "ref_name=${{ github.ref_name }}"
+
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+        uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -58,7 +57,7 @@ jobs:
         with:
           tool: tauri-cli@2
 
-      - name: Build app
+      - name: Build and upload release
         uses: tauri-apps/tauri-action@action-v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,9 +65,13 @@ jobs:
           projectPath: src-tauri
           tauriScript: cargo tauri
           args: ${{ matrix.args }}
-          releaseId: ${{ github.event_name == 'release' && github.event.release.id || '' }}
-          tagName: ${{ github.event_name == 'release' && github.event.release.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name || '') }}
-          releaseName: ${{ github.event_name == 'release' && github.event.release.name || (startsWith(github.ref, 'refs/tags/') && github.ref_name || '') }}
-          generateReleaseNotes: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+          tagName: ${{ github.ref_name }}
+          releaseName: ${{ github.ref_name }}
+          releaseBody: "Desktop builds for ${{ github.ref_name }}"
+          generateReleaseNotes: true
+          releaseDraft: false
+          prerelease: false
+
           uploadWorkflowArtifacts: true
           workflowArtifactNamePattern: "[platform]-[arch]-[bundle]"
